@@ -9,6 +9,7 @@ from moexalgo_fork.metrics import clac_offset_limit, prepare_from_till_dates
 from moexalgo_fork.models import Candle
 from moexalgo_fork.session_moexalgo_proxy import Session, data_gen, data_gen_stream
 from moexalgo_fork.utils import CandlePeriod
+from moexalgo_fork.dto.candle import CandleDto
 
 
 def pandas_frame(candles_it: iter) -> pd.DataFrame:
@@ -42,7 +43,7 @@ def pandas_frame(candles_it: iter) -> pd.DataFrame:
         """
         return {key.lower(): value for (key, value) in dct_.items()}
 
-    return pd.DataFrame([_make_lower_keys(dct) for dct in candles_it])
+    return pd.DataFrame([dct for dct in candles_it])
 
 
 def dataclass_it(candles_it: iter) -> iter[Candle]:
@@ -178,6 +179,8 @@ def prepare_request(cs: Session,
     if latest:
         options['iss.reverse'] = True
         limit = 1
+
+    options['payload'] = CandleDto
 
     path = f'{path}/boards/{boardid}/securities/{secid}/candles'
     return data_gen_stream(path, options, offset, limit, 'candles')

@@ -1,5 +1,6 @@
 import decimal
 import json as _json
+from pykson import JsonObject, Pykson
 from datetime import datetime, date, time
 from enum import Enum
 
@@ -204,39 +205,8 @@ def result_deserializer(data: dict, *sections, key: callable = None) -> dict:
     return result
 
 
-def result_deserializer_stream(data: dict, *sections, key: callable = None) -> dict:
-    """
-    Parameters
-    ----------
-    data : dict
-        Слоаврь с данными от ISS.
-    sections : Tuple
-        Секции данных, by default ('securities', 'marketdata').
-    key : Callable
-        Ключевая функция, которая принимает элемент данных и возвращает ключ, by default None.
-
-    Returns
-    -------
-    return : dict
-        Словарь с данными.
-    """
-    # result = dict()
-    #
-    # sections = sections or ('securities', 'marketdata')
-    # for section in sections:
-    #
-    #     metadata = fields['metadata']
-    #     columns = fields['columns']
-    #
-    #     for values in data:
-    #         item = item_normalizer(metadata, dict(zip(columns, values)))
-    #
-    #         if key:
-    #             result.setdefault(section, dict())[key(item)] = item
-    #         else:
-    #             result.setdefault(section, list()).append(item)
-
-    return data
+def result_deserializer_stream(data: dict, payload: JsonObject, *sections, key: callable = None, ) -> dict:
+    return Pykson().from_json(data, payload)
 
 
 def item_normalizer(metadata: dict, item: dict) -> dict:

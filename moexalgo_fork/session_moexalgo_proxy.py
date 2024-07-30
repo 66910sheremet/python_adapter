@@ -438,5 +438,5 @@ def data_gen_stream(path: str,
     """
     with Session() as client:
         return client.get_objects(path,
-                                  lambda data: result_deserializer_stream(data, section),
+                                  lambda data: result_deserializer_stream(data, options['payload'], section),
                                   **options)
