@@ -19,7 +19,7 @@ class AlgoDataMoexISS(DataBase):
         ('supercandles', {}),  # данные по Super Candles
         ('metric_name', 'none'),  # данные по Super Candles
     )
-    
+
     # States for the Finite State Machine in _load
     _ST_LIVE, _ST_HISTORBACK, _ST_OVER = range(3)
 
@@ -216,7 +216,7 @@ class AlgoDataMoexISS(DataBase):
 
     def islive(self):
         return True
-        
+
     def start(self):
         """Получение исторических данных"""
         DataBase.start(self)
@@ -301,7 +301,7 @@ class AlgoDataMoexISS(DataBase):
         till_date = datetime.now().date()  # Получать данные будем до текущей даты
         ticker = Ticker(symbol)  # Пока реализуем только для тикеров ММВБ
         while True:  # Будем получать данные пока не получим все
-            iterator = ticker.candles(start=last_date.date(), end=till_date, period=interval
+            iterator = ticker.candles(start=last_date, end=till_date, period=interval
                                       # , limit=self.limit
                                       )  # История. Максимум, 50000 баров
             rows_list = []  # Будем собирать строки в список
@@ -312,21 +312,22 @@ class AlgoDataMoexISS(DataBase):
                 rows_list = iterator
 
             if len(rows_list):
-                stats = pd.DataFrame(rows_list)  # Из списка создаем pandas DataFrame
+                stats = pd.DataFrame.from_records([s.to_dict() for s in rows_list[0]])  # Из списка создаем pandas DataFrame
                 stats.rename(columns={'begin': 'datetime'}, inplace=True)  # Переименовываем колонку даты и времени
 
-                # if len(stats):
-                #     stats = stats[['datetime', 'open', 'high', 'low', 'close', 'volume']]  # Отбираем нужные колонки
+                if len(stats):
+                    stats = stats[['datetime', 'open', 'high', 'low', 'close', 'volume']]  # Отбираем нужные колонки
 
                 if skip_first_date:  # Если убираем бары на первую дату
                     len_with_first_date = len(stats)  # Кол-во баров до удаления на первую дату
-                    first_date = stats.iloc[0][0].begin.date()  # Первая дата
-                    stats.drop(stats[(stats[0][0].begin.date() == first_date)].index, inplace=True)  # Удаляем их
-                    print(self.symbol, f' - Удалено баров на первую дату {first_date}: {len_with_first_date - len(stats)}')
+                    first_date = stats.iloc[0]['datetime'].date()  # Первая дата
+                    stats.drop(stats[(stats['datetime'].date() == first_date)].index, inplace=True)  # Удаляем их
+                    print(self.symbol,
+                          f' - Удалено баров на первую дату {first_date}: {len_with_first_date - len(stats)}')
                 if skip_last_date:  # Если убираем бары на последнюю дату
                     len_with_last_date = len(stats)  # Кол-во баров до удаления на последнюю дату
-                    last_date = stats.iloc[-1][0].begin.date()  # Последняя дата
-                    stats.drop(stats[(stats[0][0].date() == last_date)].index, inplace=True)  # Удаляем их
+                    last_date = stats.iloc[-1]['datetime'].date()  # Последняя дата
+                    stats.drop(stats[(stats['datetime'].date() == last_date)].index, inplace=True)  # Удаляем их
                     print(self.symbol, f' - Удалено баров на последнюю дату {last_date}: {len_with_last_date - len(stats)}')
                 if not four_price_doji:  # Если удаляем дожи 4-х цен
                     len_with_doji = len(stats)  # Кол-во баров до удаления дожи

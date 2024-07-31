@@ -23,7 +23,7 @@ setup(name='backtrader_moexalgo',
       long_description_content_type='text/markdown',
       url='https://github.com/WISEPLAT/backtrader_moexalgo',
       packages=find_packages(exclude=['docs', 'examples', 'ConfigMoexalgo']),
-      install_requires=['pandas', 'matplotlib', 'numpy', 'backtrader', 'requests', 'websockets', 'pykson'],
+      install_requires=['pandas', 'matplotlib', 'numpy', 'backtrader', 'requests', 'websockets', 'pykson', 'matplotlib'],
       classifiers=[
           # How mature is this project? Common values are
           #   3 - Alpha

@@ -5,7 +5,7 @@ from typing import Union
 
 import pandas as pd
 
-from moexalgo_fork.session import Session, data_gen
+from moexalgo_fork.session_moexalgo_proxy import Session, data_gen
 from moexalgo_fork.utils import ISSTickerParamException, ISSDateParamException
 
 
@@ -138,9 +138,17 @@ def prepare_from_till_dates(from_date: Union[str, date] = None,
     if (from_date is None) or (till_date is None):
         raise ISSTickerParamException()
 
-    from_date = date.fromisoformat(from_date) if isinstance(from_date, str) else (from_date or date.today())
-    if not till_date:
+    if isinstance(from_date, datetime):
+        from_date = from_date.date()
+    else:
+        from_date = date.fromisoformat(from_date) if isinstance(from_date, str) else (from_date or date.today())
+        
+    if isinstance(till_date, datetime):
+        till_date = till_date.date()
+
+    elif not till_date:
         till_date = from_date
+
     elif isinstance(till_date, str):
         till_date = date.today() if till_date == 'today' else date.fromisoformat(till_date)
     
