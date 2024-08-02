@@ -1,5 +1,9 @@
+import sys
+
+sys.path.append('D:/Projects/moex_3007_adapter/moex-iss-py-adapter')
 from collections import deque
 from datetime import datetime, time
+from moexalgo_fork.dto.candle import CandleDto
 
 import pandas as pd
 
@@ -116,7 +120,7 @@ class AlgoDataMoexISS(DataBase):
                     _super_candle = {'pr_change': pr_change, 'trades': trades, 'val': val,
                                      'pr_std': pr_std, 'disb': disb, 'pr_vwap': pr_vwap, 'trades_b': trades_b,
                                      'vol_b': vol_b, 'val_b': val_b, 'pr_vwap_b': pr_vwap_b,
-                                     'trades_s': trades_s, 'vol_s': vol_s, 'val_s':val_s, 'pr_vwap_s': pr_vwap_s}
+                                     'trades_s': trades_s, 'vol_s': vol_s, 'val_s': val_s, 'pr_vwap_s': pr_vwap_s}
 
                 if self.metric == 'orderstats':
                     datetime_, put_orders, put_orders_b, put_orders_s, put_vol, put_vol_b, put_vol_s, put_val, \
@@ -129,7 +133,7 @@ class AlgoDataMoexISS(DataBase):
                                      'put_vol_s': put_vol_s, 'put_val': put_val, 'put_val_b': put_val_b,
                                      'put_val_s': put_val_s, 'cancel_orders': cancel_orders,
                                      'cancel_orders_b': cancel_orders_b, 'cancel_orders_s': cancel_orders_s,
-                                     'cancel_vol': cancel_vol,'cancel_vol_b': cancel_vol_b,
+                                     'cancel_vol': cancel_vol, 'cancel_vol_b': cancel_vol_b,
                                      'cancel_vol_s': cancel_vol_s, 'cancel_val': cancel_val,
                                      'cancel_val_b': cancel_val_b, 'cancel_val_s': cancel_val_s,
                                      'put_vwap_b': put_vwap_b, 'put_vwap_s': put_vwap_s,
@@ -267,7 +271,8 @@ class AlgoDataMoexISS(DataBase):
         else:
             self._start_live()
 
-    def get_candles(self, from_date, symbol, interval, skip_first_date=False, skip_last_date=False, four_price_doji=True, is_test=False):
+    def get_candles(self, from_date, symbol, interval, skip_first_date=False, skip_last_date=False,
+                    four_price_doji=True, is_test=False):
         """Получение баров, используем библиотеку moexalgo_fork
             :param date from_date: С какой даты получаем данные
             :param str symbol: Код тикера
@@ -312,7 +317,28 @@ class AlgoDataMoexISS(DataBase):
                 rows_list = iterator
 
             if len(rows_list):
-                stats = pd.DataFrame.from_records([s.to_dict() for s in rows_list[0]])  # Из списка создаем pandas DataFrame
+                stats = pd.DataFrame(rows_list)  # Из списка создаем pandas DataFrame
+                df_1 = stats
+                df_1 = df_1.values
+                # print(df1.values)
+
+                parsed_data = []
+                for sublist in df_1:
+                    candle = sublist[0]
+                    parsed_data.append({
+                        'begin': candle.begin,
+                        'open': candle.open,
+                        'high': candle.high,
+                        'low': candle.low,
+                        'close': candle.close,
+                        'volume': candle.volume
+                    })
+
+                # Создаем DataFrame из словаря
+                stats = pd.DataFrame(parsed_data)
+                stats.to_csv('tiker1.csv')
+                # print(stats)
+
                 stats.rename(columns={'begin': 'datetime'}, inplace=True)  # Переименовываем колонку даты и времени
 
                 if len(stats):
@@ -320,24 +346,27 @@ class AlgoDataMoexISS(DataBase):
 
                 if skip_first_date:  # Если убираем бары на первую дату
                     len_with_first_date = len(stats)  # Кол-во баров до удаления на первую дату
-                    first_date = stats.iloc[0]['datetime'].date()  # Первая дата
-                    stats.drop(stats[(stats['datetime'].date() == first_date)].index, inplace=True)  # Удаляем их
+                    first_date = stats.iloc[0][0].begin.date()  # Первая дата
+                    stats.drop(stats[(stats[0][0].begin.date() == first_date)].index, inplace=True)  # Удаляем их
                     print(self.symbol,
                           f' - Удалено баров на первую дату {first_date}: {len_with_first_date - len(stats)}')
                 if skip_last_date:  # Если убираем бары на последнюю дату
                     len_with_last_date = len(stats)  # Кол-во баров до удаления на последнюю дату
-                    last_date = stats.iloc[-1]['datetime'].date()  # Последняя дата
-                    stats.drop(stats[(stats['datetime'].date() == last_date)].index, inplace=True)  # Удаляем их
-                    print(self.symbol, f' - Удалено баров на последнюю дату {last_date}: {len_with_last_date - len(stats)}')
+                    last_date = stats.iloc[-1][0].begin.date()  # Последняя дата
+                    stats.drop(stats[(stats[0][0].date() == last_date)].index, inplace=True)  # Удаляем их
+                    print(self.symbol,
+                          f' - Удалено баров на последнюю дату {last_date}: {len_with_last_date - len(stats)}')
                 if not four_price_doji:  # Если удаляем дожи 4-х цен
                     len_with_doji = len(stats)  # Кол-во баров до удаления дожи
-                    stats.drop(stats[(stats['high'] == stats['low'])].index, # <<<< вот здесь как заменить high на цифру
+                    stats.drop(stats[(stats['high'] == stats['low'])].index,
+                               # <<<< вот здесь как заменить high на цифру
                                inplace=True)  # Удаляем их по условия High == Low
                     print(self.symbol, ' - Удалено дожи 4-х цен:', len_with_doji - len(stats))
                 if len(stats) == 0:  # Если нечего объединять
                     print(self.symbol, '- Новых записей нет')
                     break  # то дальше не продолжаем
 
+                # print(stats.columns)
                 last_stats_dt = stats.iloc[-1]['datetime']  # Последняя полученная дата и время
                 last_stats_date = last_stats_dt.date()  # Последняя полученная дата
                 if last_stats_dt == last_dt:  # Если не получили новые значения
@@ -350,7 +379,8 @@ class AlgoDataMoexISS(DataBase):
                 last_dt = last_stats_dt  # Запоминаем последние полученные дату и время
                 last_date = last_stats_date  # и дату
 
-                df = pd.concat([df, stats]).drop_duplicates(keep='last')  # Добавляем новые данные в существующие. Удаляем дубликаты. Сбрасываем индекс
+                df = pd.concat([df, stats]).drop_duplicates(
+                    keep='last')  # Добавляем новые данные в существующие. Удаляем дубликаты. Сбрасываем индекс
             elif not len(rows_list) and not self.live_bars:
                 break
 
@@ -373,7 +403,7 @@ class AlgoDataMoexISS(DataBase):
 
         # test for live in offline
         if is_test:
-            df.drop(df.tail(4).index,inplace=True) # drop last n rows
+            df.drop(df.tail(4).index, inplace=True)  # drop last n rows
             get_live_bars_from = df.iloc[-1]['datetime']
             return df, get_live_bars_from
 
@@ -433,9 +463,11 @@ class AlgoDataMoexISS(DataBase):
 
             if len(rows_list):
                 stats = pd.DataFrame(rows_list)  # Из списка создаем pandas DataFrame
-                stats.drop('secid', axis='columns', inplace=True)  # Удаляем колонку тикера. Название тикера есть в имени файла
+                stats.drop('secid', axis='columns',
+                           inplace=True)  # Удаляем колонку тикера. Название тикера есть в имени файла
                 stats.rename(columns={'ts': 'datetime'}, inplace=True)  # Переименовываем колонку даты и времени
-                stats['datetime'] -= pd.Timedelta(minutes=5)  # 5-и минутку с датой и временем окончания переводим в дату и время начала для синхронизации с OHLCV
+                stats['datetime'] -= pd.Timedelta(
+                    minutes=5)  # 5-и минутку с датой и временем окончания переводим в дату и время начала для синхронизации с OHLCV
 
                 last_stats_dt = stats.iloc[-1]['datetime']  # Последняя полученная дата и время
                 last_stats_date = last_stats_dt.date()  # Последняя полученная дата
@@ -449,13 +481,15 @@ class AlgoDataMoexISS(DataBase):
                 last_dt = last_stats_dt  # Запоминаем последние полученные дату и время
                 last_date = last_stats_date  # и дату
 
-                df = pd.concat([df, stats]).drop_duplicates(keep='last')  # Добавляем новые данные в существующие. Удаляем дубликаты. Сбрасываем индекс
+                df = pd.concat([df, stats]).drop_duplicates(
+                    keep='last')  # Добавляем новые данные в существующие. Удаляем дубликаты. Сбрасываем индекс
             elif not len(rows_list) and not self.live_bars:
                 break
 
         # если требуется сделать resample для tradestats
         if resample and not df.empty and metric == 'tradestats':
-            df.rename(columns={'pr_open': 'open', 'pr_high': 'high', 'pr_low': 'low', 'pr_close': 'close', }, inplace=True)  # Переименовываем колонку даты и времени
+            df.rename(columns={'pr_open': 'open', 'pr_high': 'high', 'pr_low': 'low', 'pr_close': 'close', },
+                      inplace=True)  # Переименовываем колонку даты и времени
             ohlc_dict = {
                 'open': 'first',
                 'high': 'max',
@@ -483,7 +517,8 @@ class AlgoDataMoexISS(DataBase):
             df_res = df_res[df_res['open'].notna()]  # just take the rows where 'open' is not NA
             df_res.reset_index(inplace=True)
             df = df_res.copy()
-            df.rename(columns={'open': 'pr_open', 'high': 'pr_high', 'low': 'pr_low', 'close': 'pr_close', }, inplace=True)  # Переименовываем колонку даты и времени
+            df.rename(columns={'open': 'pr_open', 'high': 'pr_high', 'low': 'pr_low', 'close': 'pr_close', },
+                      inplace=True)  # Переименовываем колонку даты и времени
 
         # test for live in offline
         if is_test:

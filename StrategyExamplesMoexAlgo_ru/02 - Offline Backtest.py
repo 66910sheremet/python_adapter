@@ -142,7 +142,7 @@ if __name__ == '__main__':
     data2 = store.getdata(timeframe=bt.TimeFrame.Minutes, compression=1, dataname=symbol2, fromdate=fromdate, live_bars=False)  # поставьте здесь True - если нужно получать live бары
 
     cerebro.adddata(data)  # Добавляем данные
-    cerebro.adddata(data2)  # Добавляем данные
+    #cerebro.adddata(data2)  # Добавляем данные
 
     cerebro.addstrategy(RSIStrategy, timeframe=timeframe)  # Добавляем торговую систему
 

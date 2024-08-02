@@ -5,7 +5,7 @@ from typing import Union
 
 import pandas as pd
 
-from moexalgo_fork.session_moexalgo_proxy import Session, data_gen
+from moexalgo_fork.session import Session, data_gen
 from moexalgo_fork.utils import ISSTickerParamException, ISSDateParamException
 
 
@@ -39,7 +39,7 @@ def pandas_frame(metrics_it: iter[dict]) -> pd.DataFrame:
             Нормализованная строка.
         """
         return dict(
-            ticker=row.pop('secid', row.pop('ticker', None)), 
+            ticker=row.pop('secid', row.pop('ticker', None)),
             **{key.lower(): value for key, value in row.items()}
         )
 
@@ -55,13 +55,14 @@ class DCls(dict):
     data : dict
         Словарь с данными.
     """
+
     def __init__(self, **data) -> None:
         super().__init__(**data)
 
     def __getattr__(self, name):
         if name.startswith('_'):
             return self.__getattribute__(name)
-        
+
         try:
             return self[name]
         except KeyError:
@@ -88,11 +89,11 @@ def dataclass_it(metrics_it: iter[dict]) -> iter[DCls]:
         yield DCls(**data)
 
 
-def clac_offset_limit(offset: int = None, 
-                      limit: int = None, 
+def clac_offset_limit(offset: int = None,
+                      limit: int = None,
                       min_limit: int = 1,
-                      standart_limit: int = 10_000, 
-                      max_limit: int = 50_000, 
+                      standart_limit: int = 10_000,
+                      max_limit: int = 50_000,
                       min_offset: int = 0) -> tuple[int, int]:
     """
     Вычисление смещения и лимита.
@@ -103,7 +104,7 @@ def clac_offset_limit(offset: int = None,
         Смещение относительно начала, by default None.
     limit : int, optional
         Лимит данных, by default None.
-    
+
     Returns
     -------
     return : tuple[int, int]
@@ -142,7 +143,7 @@ def prepare_from_till_dates(from_date: Union[str, date] = None,
         from_date = from_date.date()
     else:
         from_date = date.fromisoformat(from_date) if isinstance(from_date, str) else (from_date or date.today())
-        
+
     if isinstance(till_date, datetime):
         till_date = till_date.date()
 
@@ -151,10 +152,10 @@ def prepare_from_till_dates(from_date: Union[str, date] = None,
 
     elif isinstance(till_date, str):
         till_date = date.today() if till_date == 'today' else date.fromisoformat(till_date)
-    
+
     if from_date > till_date:
         raise ISSDateParamException()
-    
+
     return from_date.isoformat(), till_date.isoformat()
 
 
@@ -168,7 +169,7 @@ def get_metrics_path(metric: str, secid: str = None) -> str:
         Метрика.
     secid : str, optional
         Наименование инструмента, by default None.
-    
+
     Returns
     -------
     return : str
@@ -180,14 +181,14 @@ def get_metrics_path(metric: str, secid: str = None) -> str:
     return path
 
 
-def prepare_request(metric: str, 
-                    cs: Session, 
-                    *, 
-                    secid: str = None, 
+def prepare_request(metric: str,
+                    cs: Session,
+                    *,
+                    secid: str = None,
                     from_date: Union[str, date] = None,
-                    till_date: Union[str, date] = None, 
-                    latest: bool = False, 
-                    offset: int = None, 
+                    till_date: Union[str, date] = None,
+                    latest: bool = False,
+                    offset: int = None,
                     limit: int = None) -> iter[dict]:
     """
     Подготовка запроса к API.
@@ -210,12 +211,12 @@ def prepare_request(metric: str,
         Смещение, by default None.
     limit : int, optional
         Лимит, by default None.
-    
+
     Returns
     -------
     return : iter[dict]
         Итератор с данными.
-    
+
     Raises
     ------
     ISSTickerParamException
@@ -223,7 +224,7 @@ def prepare_request(metric: str,
     ISSDateParamException
         Вызывается, если дата начала больше даты окончания.
     """
-    
+
     from_date, till_date = prepare_from_till_dates(from_date, till_date)
     options = {'from': from_date, 'till': till_date}
     if latest:
@@ -236,14 +237,14 @@ def prepare_request(metric: str,
 
 
 def prepare_market_request(metric: str,
-                           cs: Session, 
-                           *, 
-                           secid: str = None, 
+                           cs: Session,
+                           *,
+                           secid: str = None,
                            date_: Union[str, date] = None,
                            start: Union[str, date] = None,
                            end: Union[str, date] = None,
-                           latest: bool = False, 
-                           offset: int = None, 
+                           latest: bool = False,
+                           offset: int = None,
                            limit: int = None) -> iter[dict]:
     """
     Подготовка запроса к API (для рынка).
@@ -292,7 +293,7 @@ def prepare_market_request(metric: str,
 
     if latest:
         options['latest'] = 1
-    
+
     offset, limit = clac_offset_limit(offset, limit)
     if metric.lower().startswith('fo/futoi'):
         if len(metric.lower().split("/")) == 3:
